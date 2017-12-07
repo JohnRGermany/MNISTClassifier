@@ -5,7 +5,7 @@ This repository contains a simple neural-network classifier for the mnist-datase
 **CAUTION: THIS CODE IS NOT TESTED.**
 
 The code was developed by myself in the simplest way possible.
-No finetuning or prevention of overfitting was made.
+No fine-tuning or prevention of overfitting was made.
 
 - The algorithm uses a *3-layer MLP* with a final *softmax* layer as its classifier.
 - The network is trained using *cross-entropy* as loss function and an *Adamoptimizer* with a set learning rate of 0.0001.
