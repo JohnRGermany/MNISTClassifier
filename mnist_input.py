@@ -33,10 +33,9 @@ def read(path, batchSize):
         # 0017     unsigned byte   ??               pixel
         # ........
         # xxxx     unsigned byte   ??               pixel
-        # '>' means big-endian, each 'I' is one unsigned int (4 bytes each)
+        # '>' means big-endian, each 'i' is one int (4 bytes each)
         magic, num, rows, cols = struct.unpack('>iiii', imagesFile.read(16))
         assert magic == 2051
-        # images = np.fromfile(imagesFile, dtype=np.uint8).reshape(num, rows, cols)
         images = np.fromfile(imagesFile, dtype=np.uint8).reshape(num, rows * cols)
 
     with open(labelsPath, 'rb') as labelsFile:
@@ -48,7 +47,7 @@ def read(path, batchSize):
         # 0009     unsigned byte   ??               label
         # ........
         # xxxx     unsigned byte   ??               label
-        # '>' means big-endian, each 'I' is one unsigned int (4 bytes each)
+        # '>' means big-endian, each 'i' is one int (4 bytes each)
         magic, num = struct.unpack('>ii', labelsFile.read(8))
         assert magic == 2049
         labels = np.fromfile(labelsFile, dtype=np.uint8)
