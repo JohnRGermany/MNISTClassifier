@@ -10,17 +10,18 @@ import numpy as np
 
 # Create everything and start training
 def run(_):
-    input_pl = tf.placeholder(tf.float32, shape=[FLAGS.batchsize, 784], name='Input_pl')
+    input_pl = tf.placeholder(tf.float32, shape=[None, 784], name='Input_pl')
     out = model.inference(input_pl, FLAGS.classes)
-    labels_pl = tf.placeholder(tf.float32, shape=[FLAGS.batchsize, FLAGS.classes], name='Labels_pl')
+    labels_pl = tf.placeholder(tf.float32, shape=[None, FLAGS.classes], name='Labels_pl')
     loss = model.loss(out, labels_pl)
     train_op = model.train(loss, .0001)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     epoch_counter = 0
+    # Train
     for epoch in range(5):
-        for batch in mnist_input.read(FLAGS.path, FLAGS.batchsize):
+        for batch in mnist_input.read(FLAGS.path, FLAGS.batchsize, isTraining=True):
             labels, images = batch
             oneHotLabel = np.zeros((FLAGS.batchsize, FLAGS.classes))
             oneHotLabel[np.arange(FLAGS.batchsize), labels] = 1
@@ -33,6 +34,22 @@ def run(_):
                     'Prediction:\t ', np.array(output).argmax(axis=1), '\n',
                     'Labels:\t ', labels, '\n',
                     'Loss: ', total_loss, '\n')
+    # Test
+    t = f = 0
+    for batch in mnist_input.read(FLAGS.path, 1, isTraining=False):
+        label, image = batch
+        feed_dict = {
+            input_pl: image.astype(np.float32)
+        }
+        output = sess.run(out, feed_dict=feed_dict)
+        prediction = np.array(output).argmax(axis=1).flatten()
+        t += label[0] == prediction[0]
+        f += 1-(label[0] == prediction[0])
+
+        print('[INFO] Testing:\n',
+                'Prediction:\t ', prediction[0], '\n',
+                'Label:\t\t ', label[0], '\n',
+                'Accuracy: ', t / (t+f), '\n')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -45,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument(
       '--batchsize',
       type=int,
-      default='20',
+      default='50',
       help='Number of images in one training batch'
     )
     parser.add_argument(

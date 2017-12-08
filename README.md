@@ -9,7 +9,7 @@ No fine-tuning or prevention of overfitting was made.
 
 - The algorithm uses a *3-layer MLP* with a final *softmax* layer as its classifier.
 - The network is trained using *cross-entropy* as loss function and an *Adamoptimizer* with a set learning rate of 0.0001.
-- It reaches an accuracy of over 90% after 3 epochs
+- It reaches an accuracy of ~95% after 5 epochs of training
 
 Contact me if you have any questions or want to use the code.
 

@@ -8,12 +8,15 @@ import gzip
 
 from six.moves import urllib
 
-IMAGES_NAME = 'train-images-idx3-ubyte'
-LABELS_NAME = 'train-labels-idx1-ubyte'
+IMAGES_NAME_FULL = ['t10k-images-idx3-ubyte', 'train-images-idx3-ubyte']
+LABELS_NAME_FULL = ['t10k-labels-idx1-ubyte', 'train-labels-idx1-ubyte']
 DOWNLOAD_URL = 'http://yann.lecun.com/exdb/mnist/'
 
 # Returns an iterator containing #-batchSize (label, image)-pairs
-def read(path, batchSize):
+def read(path, batchSize, isTraining):
+    IMAGES_NAME = IMAGES_NAME_FULL[isTraining]
+    LABELS_NAME = LABELS_NAME_FULL[isTraining]
+
     download(path, IMAGES_NAME, DOWNLOAD_URL)
     download(path, LABELS_NAME, DOWNLOAD_URL)
 
@@ -51,6 +54,8 @@ def read(path, batchSize):
         magic, num = struct.unpack('>ii', labelsFile.read(8))
         assert magic == 2049
         labels = np.fromfile(labelsFile, dtype=np.uint8)
+
+    assert len(labels) == len(images)
 
     imageBatch = lambda i: (labels[i:i+batchSize], images[i:i+batchSize])
 
