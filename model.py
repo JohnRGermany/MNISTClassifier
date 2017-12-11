@@ -20,7 +20,7 @@ def inference(inputImage, num_classes):
     dense = tf.layers.dense(reshape, 1024, activation=tf.nn.relu)
     logits = tf.layers.dense(dense, num_classes)
 
-    return logits
+    return logits, conv1, conv2
 
 # Loss function of the network
 def loss(logits, labels):

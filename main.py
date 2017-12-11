@@ -7,11 +7,12 @@ import mnist_input
 import time
 import model
 import numpy as np
+import mnist_helper
 
 # Create everything and start training
 def run(_):
     input_pl, labels_pl = model.placeholders(28, 28, 1, FLAGS.classes)
-    logits = model.inference(input_pl, FLAGS.classes)
+    logits, conv1, conv2 = model.inference(input_pl, FLAGS.classes)
     loss = model.loss(logits, labels_pl)
     train_op = model.train(loss, .001)
     accuracy = model.accuracy(logits, labels_pl)
@@ -45,6 +46,20 @@ def run(_):
         acc = sess.run(accuracy, feed_dict=feed_dict)
         print('[INFO] Testing: \n',
                 'Accuracy: ', acc, '\n')
+
+    # Plotting Convolutions
+    for batch in mnist_input.read(FLAGS.path, 1, isTraining=False):
+        if np.random.rand() < 0.1:
+            _, images = batch
+            feed_dict = {
+                input_pl: images.astype(np.float32)
+            }
+            result1, result2 = sess.run([conv1,conv2], feed_dict=feed_dict)
+            mnist_helper.show_conv_results(result1)
+            mnist_helper.show_conv_results(result2)
+            break
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
