@@ -39,7 +39,8 @@ def read(path, batchSize, isTraining):
         # '>' means big-endian, each 'i' is one int (4 bytes each)
         magic, num, rows, cols = struct.unpack('>iiii', imagesFile.read(16))
         assert magic == 2051
-        images = np.fromfile(imagesFile, dtype=np.uint8).reshape(num, rows * cols)
+        # [num, rows * cols] for MLP, [num, rows, cols] for CNN
+        images = np.fromfile(imagesFile, dtype=np.uint8).reshape(num, rows, cols, 1)
 
     with open(labelsPath, 'rb') as labelsFile:
         # TRAINING SET LABEL FILE (train-labels-idx1-ubyte):
@@ -56,7 +57,7 @@ def read(path, batchSize, isTraining):
         labels = np.fromfile(labelsFile, dtype=np.uint8)
 
     assert len(labels) == len(images)
-
+    batchSize = len(labels) if batchSize == 0 else batchSize
     imageBatch = lambda i: (labels[i:i+batchSize], images[i:i+batchSize])
 
     for i in range(0, len(labels), batchSize):

@@ -4,17 +4,38 @@ import tensorflow as tf
 import numpy as np
 
 # Neural network definition
-def inference(input_image, num_classes):
-    net = tf.layers.dense(input_image, 512, activation=tf.nn.relu, kernel_initializer=tf.random_normal_initializer(stddev=.1))
-    net = tf.layers.dense(net, 512, activation=tf.nn.relu, kernel_initializer=tf.random_normal_initializer(stddev=.1))
-    net = tf.layers.dense(net, 128, activation=tf.nn.relu, kernel_initializer=tf.random_normal_initializer(stddev=.1))
-    out = tf.nn.softmax(tf.layers.dense(net, num_classes, kernel_initializer=tf.random_normal_initializer(stddev=.001)))
-    return out
+def inference(inputImage, num_classes):
+    # Create 32 convolutions with 5x5 patches
+    conv1 = tf.layers.conv2d(inputs=inputImage, filters=32, kernel_size=[5, 5],
+        padding="SAME", activation=tf.nn.relu)
+    # Reduce by factor 2
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+    # Create 64 convolutions with 5x5 patches
+    conv2 = tf.layers.conv2d(inputs=pool1, filters=64, kernel_size=[5, 5],
+        padding="SAME", activation=tf.nn.relu)
+    # Reduce by factor 2
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+    # Squash to be used by feed forward nn
+    reshape = tf.reshape(pool2, [-1, 7 * 7 * 64])
+    dense = tf.layers.dense(reshape, 1024, activation=tf.nn.relu)
+    logits = tf.layers.dense(dense, num_classes)
+
+    return logits
 
 # Loss function of the network
 def loss(logits, labels):
-    return tf.losses.softmax_cross_entropy(labels, logits)
+    return tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=logits)
 
 # Training function of the network
 def train(loss, lr):
     return tf.train.AdamOptimizer(lr).minimize(loss)
+
+def placeholders(rows, cols, num, classes):
+    input_pl = tf.placeholder(tf.float32, shape=[None, rows, cols, num], name='Input_pl')
+    labels_pl = tf.placeholder(tf.float32, shape=[None, classes], name='Labels_pl')
+    return input_pl, labels_pl
+
+def accuracy(output, labels):
+    correct_prediction = tf.equal(tf.argmax(output,1), tf.argmax(labels,1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    return accuracy
