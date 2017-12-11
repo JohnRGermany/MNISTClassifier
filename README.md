@@ -1,17 +1,16 @@
 MNIST Classifier
 =====================================================
-This repository contains a simple neural-network classifier for the mnist-dataset.
+This repository contains a simple convolutional neural-network classifier for the mnist-dataset.
 
-**CAUTION: THIS CODE IS NOT TESTED.**
-
-The code was developed by myself in the simplest way possible.
-No fine-tuning or prevention of overfitting was made.
-
-- The algorithm uses a *3-layer MLP* with a final *softmax* layer as its classifier.
-- The network is trained using *cross-entropy* as loss function and an *Adamoptimizer* with a set learning rate of 0.0001.
-- It reaches an accuracy of ~95% after 5 epochs of training
+- The algorithm uses *2 convolutional-* and *2 max-pooling-layers* with a final *fully conncted* layer.
+- The network is trained using *softmax-cross-entropy* as loss function and an *Adamoptimizer* with a set learning rate of *0.001*.
+- It reaches an accuracy of 97.96% after 2 epochs of training (1 epoch being the full dataset)
 
 Contact me if you have any questions or want to use the code.
+
+Different stable-versions of the algorithm can be found in different commits,
+e.g. ``git checkout 398690e`` checks out the first working version using an MLP instead of a CNN.
+Go back to newest commit using ``git checkout master``.
 
 Prerequisites
 --------------

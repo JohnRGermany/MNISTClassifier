@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 
 # Neural network definition
-def inference(inputImage, num_classes):
+def inference(inputImage, num_classes, keep_rate):
     # Create 32 convolutions with 5x5 patches
     conv1 = tf.layers.conv2d(inputs=inputImage, filters=32, kernel_size=[5, 5],
         padding="SAME", activation=tf.nn.relu)
@@ -18,6 +18,7 @@ def inference(inputImage, num_classes):
     # Squash to be used by feed forward nn
     reshape = tf.reshape(pool2, [-1, 7 * 7 * 64])
     dense = tf.layers.dense(reshape, 1024, activation=tf.nn.relu)
+    dropout = tf.layers.dropout(inputs=dense, rate=keep_rate)
     logits = tf.layers.dense(dense, num_classes)
 
     return logits, conv1, conv2
@@ -31,9 +32,10 @@ def train(loss, lr):
     return tf.train.AdamOptimizer(lr).minimize(loss)
 
 def placeholders(rows, cols, num, classes):
+    keep_pl = tf.placeholder(tf.float32, name='Dropout_rate_pl')
     input_pl = tf.placeholder(tf.float32, shape=[None, rows, cols, num], name='Input_pl')
     labels_pl = tf.placeholder(tf.float32, shape=[None, classes], name='Labels_pl')
-    return input_pl, labels_pl
+    return input_pl, labels_pl, keep_pl
 
 def accuracy(output, labels):
     correct_prediction = tf.equal(tf.argmax(output,1), tf.argmax(labels,1))
