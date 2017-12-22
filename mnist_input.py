@@ -39,7 +39,7 @@ def read(path, batchSize, isTraining):
         # '>' means big-endian, each 'i' is one int (4 bytes each)
         magic, num, rows, cols = struct.unpack('>iiii', imagesFile.read(16))
         assert magic == 2051
-        # [num, rows * cols] for MLP, [num, rows, cols] for CNN
+        # [num, rows * cols] for MLP, [num, rows, cols, 1] for CNN
         images = np.fromfile(imagesFile, dtype=np.uint8).reshape(num, rows, cols, 1)
 
     with open(labelsPath, 'rb') as labelsFile:

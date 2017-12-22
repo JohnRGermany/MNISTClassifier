@@ -8,11 +8,17 @@ import time
 import model
 import numpy as np
 import mnist_helper
+import kmeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA as sklearnPCA
+import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
+from matplotlib.offsetbox import (TextArea, DrawingArea, OffsetImage, AnnotationBbox)
 
 # Create everything and start training
 def run(_):
     input_pl, labels_pl, keep_pl = model.placeholders(28, 28, 1, FLAGS.classes)
-    logits, conv1, conv2 = model.inference(input_pl, FLAGS.classes, keep_pl)
+    logits, conv1, conv2, fc = model.inference(input_pl, FLAGS.classes, keep_pl)
     loss = model.loss(logits, labels_pl)
     train_op = model.train(loss, .001)
     accuracy = model.accuracy(logits, labels_pl)
@@ -20,51 +26,112 @@ def run(_):
     sess.run(tf.global_variables_initializer())
     epoch_counter = 0
 
+    saver = tf.train.Saver()
+
+    #Load trained model if provided
+    if FLAGS.load_path != '':
+        print('[INFO] - Loading graph from: ', FLAGS.load_path)
+        saver.restore(sess, FLAGS.load_path)
+
     t = int(round(time.time()))
     # Train
-    for epoch in range(2):
-        for batch in mnist_input.read(FLAGS.path, FLAGS.batchsize, isTraining=True):
-            labels, images = batch
-            oneHotLabel = np.zeros((FLAGS.batchsize, FLAGS.classes))
-            oneHotLabel[np.arange(FLAGS.batchsize), labels] = 1
-            feed_dict = {
-                input_pl: images.astype(np.float32),
-                labels_pl: oneHotLabel.astype(np.float32),
-                keep_pl: 0.4
-            }
-            logitsput, total_loss, _ = sess.run([logits, loss, train_op], feed_dict=feed_dict)
-            print('[INFO] Epoch: ', epoch, '\n',
-                    'Prediction:\t ', np.array(logitsput).argmax(axis=1), '\n',
-                    'Labels:\t ', labels, '\n',
-                    'Loss: ', total_loss, '\n')
-    print('[INFO] - Training time in minutes: ', (int(round(time.time())) - t)/60)
+    if FLAGS.do_training != 0:
+        for epoch in range(2):
+            for batch in mnist_input.read(FLAGS.path, FLAGS.batchsize, isTraining=True):
+                labels, images = batch
+                oneHotLabel = np.zeros((FLAGS.batchsize, FLAGS.classes))
+                oneHotLabel[np.arange(FLAGS.batchsize), labels] = 1
+                feed_dict = {
+                    input_pl: images.astype(np.float32),
+                    labels_pl: oneHotLabel.astype(np.float32),
+                    keep_pl: 0.4
+                }
+                logitsput, total_loss, _ = sess.run([logits, loss, train_op], feed_dict=feed_dict)
+                print('[INFO] Epoch: ', epoch, '\n',
+                        'Prediction:\t ', np.array(logitsput).argmax(axis=1), '\n',
+                        'Labels:\t ', labels, '\n',
+                        'Loss: ', total_loss, '\n')
+        print('[INFO] - Training time in minutes: ', (int(round(time.time())) - t)/60)
+
+    # Save model after training
+    save_path = saver.save(sess, FLAGS.log_dir + "/model.ckpt")
+    print("[INFO] - Model saved in file: ", save_path)
     # Test
-    for batch in mnist_input.read(FLAGS.path, 0, isTraining=False):
+    # for batch in mnist_input.read(FLAGS.path, 0, isTraining=False):
+    #     labels, images = batch
+    #     oneHotLabel = np.zeros((len(labels), FLAGS.classes))
+    #     oneHotLabel[np.arange(len(labels)), labels] = 1
+    #     feed_dict = {
+    #         input_pl: images.astype(np.float32),
+    #         labels_pl: oneHotLabel.astype(np.float32),
+    #         keep_pl: 1.0
+    #     }
+    #     acc = sess.run(accuracy, feed_dict=feed_dict)
+    #     print('[INFO] Testing: \n',
+    #             'Accuracy: ', acc, '\n')
+    #
+    # # Plotting Convolutions
+    # for batch in mnist_input.read(FLAGS.path, 1, isTraining=False):
+    #     if np.random.rand() < 0.1:
+    #         _, images = batch
+    #         feed_dict = {
+    #             input_pl: images.astype(np.float32),
+    #             keep_pl: 1.0
+    #         }
+    #         result1, result2 = sess.run([conv1,conv2], feed_dict=feed_dict)
+    #         mnist_helper.show_conv_results(result1)
+    #         mnist_helper.show_conv_results(result2)
+    #         break
+
+    # KMeans on test data
+    for batch in mnist_input.read(FLAGS.path, 20, isTraining=False):
         labels, images = batch
-        oneHotLabel = np.zeros((len(labels), FLAGS.classes))
-        oneHotLabel[np.arange(len(labels)), labels] = 1
         feed_dict = {
             input_pl: images.astype(np.float32),
-            labels_pl: oneHotLabel.astype(np.float32),
             keep_pl: 1.0
         }
-        acc = sess.run(accuracy, feed_dict=feed_dict)
-        print('[INFO] Testing: \n',
-                'Accuracy: ', acc, '\n')
+        features = sess.run(fc, feed_dict=feed_dict)
+        features_std = StandardScaler().fit_transform(features)
+        print('std: ', features_std)
+        sklearn_pca = sklearnPCA(n_components=2)
+        Z = sklearn_pca.fit_transform(features_std)
+        print('Z: ', Z)
+        k = 10
+        centroids, cluster_labels = kmeans.run(k, Z)
+        print('centroids: ', centroids)
+        print('cluster labels: ', cluster_labels)
+        print('real labels: ', labels)
 
-    # Plotting Convolutions
-    for batch in mnist_input.read(FLAGS.path, 1, isTraining=False):
-        if np.random.rand() < 0.1:
-            _, images = batch
-            feed_dict = {
-                input_pl: images.astype(np.float32),
-                keep_pl: 1.0
-            }
-            result1, result2 = sess.run([conv1,conv2], feed_dict=feed_dict)
-            mnist_helper.show_conv_results(result1)
-            mnist_helper.show_conv_results(result2)
-            break
+        cluster_idxs = [np.where(np.array(cluster_labels) == i) for i in range(k)]
 
+        colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+        by_hsv = sorted((tuple(mcolors.rgb_to_hsv(mcolors.to_rgba(color)[:3])), name) for name, color in colors.items())
+        names = [name for hsv, name in by_hsv]
+        np.random.shuffle(names)
+
+        fig, ax = plt.subplots()
+        # np.set_printoptions(threshold='nan')
+        for i in range(k):
+            cluster_data = [Z[j] for j in cluster_idxs[i]][0]
+            imgs = np.array(images).reshape((-1,28,28))
+            imgs = [imgs[j] for j in cluster_idxs[i]]
+            imgs = np.array(imgs).reshape(-1,28,28)
+            print(np.array(imgs).shape)
+            x = cluster_data[:,0]
+            y = cluster_data[:,1]
+
+
+            for idx in range(len(imgs)):
+                imagebox = OffsetImage(imgs[idx], zoom=0.75)
+                imagebox.image.axes = ax
+                ab = AnnotationBbox(imagebox, [x[idx],y[idx]], xycoords='data')
+                ax.add_artist(ab)
+
+        x = centroids[:,0]
+        y = centroids[:,1]
+        plt.scatter(x, y, color = 'r', marker='^')
+        plt.show()
+        break
 
 
 if __name__ == '__main__':
@@ -86,6 +153,24 @@ if __name__ == '__main__':
       type=int,
       default='10',
       help='Number of classes'
+    )
+    parser.add_argument(
+      '--load_path',
+      type=str,
+      default='',
+      help='Relative path to a saved model'
+    )
+    parser.add_argument(
+      '--log_dir',
+      type=str,
+      default='./logs',
+      help='Relative path to the log files'
+    )
+    parser.add_argument(
+      '--do_training',
+      type=int,
+      default=1,
+      help='Whether or not the classifier should be trained or not'
     )
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=run, argv=[sys.argv[0]] + unparsed)

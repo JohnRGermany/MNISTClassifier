@@ -19,9 +19,10 @@ def inference(inputImage, num_classes, keep_rate):
     reshape = tf.reshape(pool2, [-1, 7 * 7 * 64])
     dense = tf.layers.dense(reshape, 1024, activation=tf.nn.relu)
     dropout = tf.layers.dropout(inputs=dense, rate=keep_rate)
-    logits = tf.layers.dense(dense, num_classes)
+    fc = tf.layers.dense(dense, 128, activation=tf.nn.relu)
+    logits = tf.layers.dense(fc, num_classes)
 
-    return logits, conv1, conv2
+    return logits, conv1, conv2, fc
 
 # Loss function of the network
 def loss(logits, labels):
