@@ -84,23 +84,21 @@ def run(_):
     #         break
 
     # KMeans on test data
-    for batch in mnist_input.read(FLAGS.path, 20, isTraining=False):
+    for batch in mnist_input.read(FLAGS.path, 30, isTraining=False):
         labels, images = batch
+        if np.random.rand() > 0.1:
+            continue
         feed_dict = {
             input_pl: images.astype(np.float32),
             keep_pl: 1.0
         }
         features = sess.run(fc, feed_dict=feed_dict)
         features_std = StandardScaler().fit_transform(features)
-        print('std: ', features_std)
         sklearn_pca = sklearnPCA(n_components=2)
         Z = sklearn_pca.fit_transform(features_std)
-        print('Z: ', Z)
+
         k = 10
-        centroids, cluster_labels = kmeans.run(k, Z)
-        print('centroids: ', centroids)
-        print('cluster labels: ', cluster_labels)
-        print('real labels: ', labels)
+        centroids, cluster_labels = kmeans.run(k, features)
 
         cluster_idxs = [np.where(np.array(cluster_labels) == i) for i in range(k)]
 
@@ -110,7 +108,6 @@ def run(_):
         np.random.shuffle(names)
 
         fig, ax = plt.subplots()
-        # np.set_printoptions(threshold='nan')
         for i in range(k):
             cluster_data = [Z[j] for j in cluster_idxs[i]][0]
             imgs = np.array(images).reshape((-1,28,28))
@@ -122,16 +119,13 @@ def run(_):
 
 
             for idx in range(len(imgs)):
-                imagebox = OffsetImage(imgs[idx], zoom=0.75)
-                imagebox.image.axes = ax
-                ab = AnnotationBbox(imagebox, [x[idx],y[idx]], xycoords='data')
-                ax.add_artist(ab)
+                ax.scatter(x,y, c=names[i])
+                ax.imshow(imgs[idx], extent=(x[idx],x[idx]+2,y[idx],y[idx]+2))
 
-        x = centroids[:,0]
-        y = centroids[:,1]
-        plt.scatter(x, y, color = 'r', marker='^')
+            x = centroids[i,0]
+            y = centroids[i,1]
+            plt.scatter(x, y, c=names[i], marker='^')
         plt.show()
-        break
 
 
 if __name__ == '__main__':
