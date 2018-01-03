@@ -21,3 +21,16 @@ def find_rows_cols(x):
     while x % num != 0:
         num -= 1
     return num, x/num
+
+def plot(data, filename=None):
+    plt.figure()
+    print('[INFO] - Plotting: ', np.shape(data))
+    for i in range(2):
+        img = data[ : , : , i]
+        plt.subplot(1, 2, i + 1)
+        plt.imshow(img, cmap='Greys_r', interpolation='none')
+        plt.axis('off')
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()

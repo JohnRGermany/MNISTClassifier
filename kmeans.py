@@ -4,22 +4,17 @@ from tensorflow.contrib.factorization import KMeans
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
 
-def run(k, data):
-    data_pl = tf.placeholder(tf.float32, shape=data.shape, name='Data_pl')
-    kmeans = KMeans(inputs=data_pl, num_clusters=k, use_mini_batch=True)
-    training_graph = kmeans.training_graph()
-    (all_scores, cluster_idx, scores, cluster_centers_initialized, cluster_centers_var, init_op, train_op) = training_graph
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    sess.run(init_op, feed_dict={data_pl: data})
-    idx = []
+def run(k, X_pl, Y_pl, distance, sess):
+
+    centroids = init_cluster_centroids()
+    cluster_label = tf.argmin(distance, 0)
+
     while True:
-        idx_old = idx
-        _, idx = sess.run([train_op, cluster_idx], feed_dict={data_pl: data})
-        if np.array_equal(idx_old, idx):
-            break
+        cluter_idxs = sess.run(cluster_labels, feed_dict={X_pl: data, Y_pl: centroids})
+        centroids = sess.run(recompute_centroids())
+    return centroids
 
-    cluster_labels = sess.run(cluster_idx, feed_dict={data_pl: data})[0]
-    centroids = cluster_centers_var.eval(sess)
+def init_cluster_centroids(data, k):
+    return data[:k]
 
-    return centroids, cluster_labels
+# def recompute_centroids():

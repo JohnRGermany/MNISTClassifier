@@ -5,6 +5,7 @@ import os
 import numpy as np
 import struct
 import gzip
+import mnist_helper
 
 from six.moves import urllib
 
@@ -81,3 +82,17 @@ def download(dataDir, filename, url):
                 print('[INFO] Extracted: ', dlpath, '\n'
                     'into: ', path, '\n')
     assert tf.gfile.Exists(path)
+
+def get_similarity_batch(batch):
+    labels, images = batch
+    assert len(labels) % 2 == 0.0
+    batch = list(zip(labels, images))
+    np.random.shuffle(batch)
+    labels, images = zip(*batch)
+    imagePairs = []
+    pairLabels = []
+    for i in range(len(labels)//2):
+        imagePair = np.concatenate((images[i], images[len(images)//2+i]), axis=2)
+        imagePairs.append(imagePair)
+        pairLabels.append(int(labels[i] == labels[len(batch)//2+i]))
+    return pairLabels, imagePairs
